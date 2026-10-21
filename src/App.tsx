@@ -60,18 +60,26 @@ const categories: Category[] = ["Food", "Transportation", "School", "Personal", 
 const allowancePeriods: AllowancePeriod[] = ["Daily", "Weekly", "Monthly"];
 
 const categoryColors: Record<Category, string> = {
-  Food: "#7FAE99",
-  Transportation: "#8BAFC4",
-  School: "#E6C968",
-  Personal: "#D8927F",
-  Others: "#A79AA3",
+  Food: "var(--green)",
+  Transportation: "var(--blue-deep)",
+  School: "var(--yellow-deep)",
+  Personal: "var(--coral)",
+  Others: "var(--burgundy)",
+};
+
+const categoryBgColors: Record<Category, string> = {
+  Food: "var(--green-soft)",
+  Transportation: "var(--blue)",
+  School: "var(--buttermilk)",
+  Personal: "var(--coral-soft)",
+  Others: "var(--blue-soft)",
 };
 
 const avatarThemeColors: Record<AvatarTheme, { bg: string; label: string }> = {
-  buttermilk: { bg: "#fff1b5", label: "Buttermilk" },
-  blue: { bg: "#c1dbe8", label: "Sky Blue" },
-  green: { bg: "#cfe8d9", label: "Sage Green" },
-  coral: { bg: "#f5cfc6", label: "Warm Coral" },
+  buttermilk: { bg: "var(--buttermilk)", label: "Buttermilk" },
+  blue: { bg: "var(--blue)", label: "Powder Blue" },
+  green: { bg: "var(--green-soft)", label: "Sage Green" },
+  coral: { bg: "var(--coral-soft)", label: "Muted Coral" },
 };
 
 const defaultNotifications: NotificationPrefs = {
@@ -682,9 +690,15 @@ function App() {
                 </div>
               )}
             </div>
-            <div onClick={() => navigate("Settings")} title="Profile & Settings">
+            <button
+              type="button"
+              className="top-avatar-btn"
+              onClick={() => navigate("Settings")}
+              title="Profile & Settings"
+              aria-label="Profile & Settings"
+            >
               <UserAvatar name={profileName} picture={currentUser.picture} bg={avatarBg} className="top-avatar" />
-            </div>
+            </button>
           </div>
         </header>
         <div className="content" onClick={() => { if (notifOpen) setNotifOpen(false); }}>
@@ -1104,7 +1118,7 @@ function Dashboard({
       <Card className="stat-card green">
         <div className="stat-top"><span>Remaining balance</span><div className="icon-box"><Icon name="wallet" /></div></div>
         <strong>{formatPeso(remaining)}</strong>
-        <small className={remaining >= 0 && allowance > 0 ? "positive" : ""}>
+        <small className={allowance === 0 ? "" : remaining >= 0 ? "positive" : "negative"}>
           {allowance === 0 ? "No allowance set yet" : remaining >= 0 ? "You’re on track" : "Over budget"}
         </small>
       </Card>
@@ -1124,7 +1138,7 @@ function Dashboard({
         <Card className="budget-card">
           <div className="section-heading">
             <div><p className="eyebrow">{period} budget</p><h2>Spending overview</h2></div>
-            <span className="status-pill">{allowance === 0 ? "Not set" : remaining >= 0 ? "On track" : "Over budget"}</span>
+            <span className={`status-pill ${allowance === 0 ? "neutral" : remaining >= 0 ? "good" : "warn"}`}>{allowance === 0 ? "Not set" : remaining >= 0 ? "On track" : "Over budget"}</span>
           </div>
           <div className="budget-numbers"><div><strong>{formatPeso(spent)}</strong><span>spent of {formatPeso(allowance)}</span></div><strong>{Math.round(percent)}%</strong></div>
           <div className="progress"><span style={{ width: `${percent}%` }} /></div>
@@ -1158,7 +1172,7 @@ function Dashboard({
 }
 
 function Transaction({ expense, actions }: { expense: Expense; actions?: ReactNode }) {
-  return <div className="transaction"><div className="category-icon" style={{ background: `${categoryColors[expense.category]}24`, color: categoryColors[expense.category] }}><Icon name={expense.category === "Transportation" ? "wallet" : expense.category === "School" ? "receipt" : "target"} size={18} /></div><div className="transaction-info"><strong>{expense.name}</strong><span>{expense.category} · {new Date(`${expense.date}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}</span></div><strong className="amount">−{formatPeso(expense.amount)}</strong>{actions}</div>;
+  return <div className="transaction"><div className="category-icon" style={{ background: categoryBgColors[expense.category], color: categoryColors[expense.category] }}><Icon name={expense.category === "Transportation" ? "wallet" : expense.category === "School" ? "receipt" : "target"} size={18} /></div><div className="transaction-info"><strong>{expense.name}</strong><span>{expense.category} · {new Date(`${expense.date}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}</span></div><strong className="amount">−{formatPeso(expense.amount)}</strong>{actions}</div>;
 }
 
 function Affordability({ remaining, essentialBudget, dailyBudget }: { remaining: number; essentialBudget: number; dailyBudget: number }) {
@@ -1211,7 +1225,7 @@ function BudgetPlanner({ allowance, setAllowance, period, setPeriod, essentialBu
     <PageHeader eyebrow="Plan before you spend" title="Budget planner" description="Give every peso a purpose and make your allowance last." />
     <div className="planner-grid">
       <Card className="planner-form"><h2>Allowance plan</h2><p>Adjust your budget anytime as your needs change.</p><div className="segmented">{allowancePeriods.map((item) => <button key={item} type="button" className={period === item ? "active" : ""} onClick={() => setPeriod(item)}>{item}</button>)}</div><Field label={`${period} allowance`} type="number" min="0" value={allowance || ""} placeholder="₱ 0" onChange={(e) => setAllowance(Number(e.target.value))} /><Field label="Reserve for necessities" type="number" min="0" max={allowance} value={essentialBudget || ""} placeholder="₱ 0" onChange={(e) => setEssentialBudget(Number(e.target.value))} /><Field label="Savings goal (ipon target)" type="number" min="0" max={allowance} value={savingsGoal || ""} placeholder="₱ 0" onChange={(e) => setSavingsGoal(Number(e.target.value))} /><Button onClick={onSave}>Save budget plan</Button></Card>
-      <Card className="allocation-card"><div className="section-heading"><div><p className="eyebrow">Your allocation</p><h2>{formatPeso(allowance)} total</h2></div><span className="status-pill">{period}</span></div><div className="donut" style={{ background: `conic-gradient(var(--burgundy) 0 ${essentialPct}%, var(--blue) 0 100%)` }}><div><strong>{formatPeso(flexible)}</strong><span>flexible</span></div></div><div className="allocation-legend"><div><span className="dot dark" /><p><strong>Necessities &amp; Ipon</strong><small>{formatPeso(essentialBudget + savingsGoal)}</small></p></div><div><span className="dot blue" /><p><strong>Flexible spending</strong><small>{formatPeso(flexible)}</small></p></div></div><div className="plan-progress"><span>Current spending</span><strong>{formatPeso(spent)} of {formatPeso(allowance)}</strong><div className="progress"><span style={{ width: `${spentPct}%` }} /></div></div></Card>
+      <Card className="allocation-card"><div className="section-heading"><div><p className="eyebrow">Your allocation</p><h2>{formatPeso(allowance)} total</h2></div><span className="status-pill">{period}</span></div><div className="donut" style={{ background: `conic-gradient(var(--burgundy) 0 ${essentialPct}%, var(--blue-deep) 0 100%)` }}><div><strong>{formatPeso(flexible)}</strong><span>flexible</span></div></div><div className="allocation-legend"><div><span className="dot dark" /><p><strong>Necessities &amp; Ipon</strong><small>{formatPeso(essentialBudget + savingsGoal)}</small></p></div><div><span className="dot blue" /><p><strong>Flexible spending</strong><small>{formatPeso(flexible)}</small></p></div></div><div className="plan-progress"><span>Current spending</span><strong>{formatPeso(spent)} of {formatPeso(allowance)}</strong><div className="progress"><span style={{ width: `${spentPct}%` }} /></div></div></Card>
     </div>
   </>;
 }
